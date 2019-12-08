@@ -1,5 +1,9 @@
 use std::error::Error;
+use std::env;
 use std::fmt;
+use std::io::prelude::*;
+use std::net::TcpStream;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crossbeam_channel::{bounded, Receiver, select};
 use ctrlc;
@@ -45,7 +49,9 @@ const I2C_START: [u8; 1] = [0x71];
 const I2C_STOP: [u8; 1] = [0x00];
 
 fn main() -> Result<(), Box<dyn Error>> {
+	let args: Vec<String> = env::args().collect();
 	let ctrl_c_events = ctrl_channel()?;
+	let address = format!("{}:8000", args[1]);
 
 	println!("Starting up geiger on a {}.", DeviceInfo::new()?.model());
 	let mut i2c = I2c::new()?;
@@ -59,9 +65,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let gpio = Gpio::new()?;
 
 	let mut counter = 0;
+	println!("Connecting to {}", address);
+	let mut stream = TcpStream::connect(address).expect("connection failed");
 	let particle = move |level| {
+		let now = SystemTime::now();
+		let ms = now.duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+		stream.write(&ms.to_be_bytes()).expect("data was sent");
 		counter = counter + 1;
-		println!("particle {} {}", level, counter);
+		println!("particle {} {} {:?}", level, counter, ms);
 	};
 	let mut pin = gpio.get(GPIO_GEIGER)?.into_input();
 	pin.set_async_interrupt(Trigger::FallingEdge, particle)?;
