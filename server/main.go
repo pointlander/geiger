@@ -1,9 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
+	"math/big"
 	"net"
 )
 
@@ -31,13 +30,9 @@ func main() {
 					fmt.Println("invalid length")
 				}
 
-				var ms uint64
-				input := bytes.NewReader(buffer[8:])
-				err = binary.Read(input, binary.BigEndian, &ms)
-				if err != nil {
-					panic(err)
-				}
-				fmt.Printf("got data %v\n", ms)
+				var ms big.Int
+				ms.SetBytes(buffer)
+				fmt.Printf("got data %v\n", ms.String())
 			}
 		}(connection)
 	}
