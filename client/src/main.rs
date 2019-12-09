@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let mut stream = TcpStream::connect(address).expect("connection failed");
 	let particle = move |level| {
 		let now = SystemTime::now();
-		let ms = now.duration_since(UNIX_EPOCH).expect("Time went backwards").as_millis();
+		let ms = now.duration_since(UNIX_EPOCH).expect("Time went backwards").as_nanos();
 		stream.write(&ms.to_be_bytes()).expect("data was sent");
 		counter = counter + 1;
 		println!("particle {} {} {:?}", level, counter, ms);
