@@ -3,10 +3,13 @@ package main
 import (
 	"compress/gzip"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 )
@@ -41,7 +44,33 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		out, err := os.Create(fmt.Sprintf("data_%d.geiger", index))
+
+		buffer, id := make([]byte, 1), 0
+		length, err := connection.Read(buffer)
+		if err != nil {
+			return
+		}
+		if length != 1 {
+			fmt.Println("invalid length for id")
+		}
+		dir := fmt.Sprintf("%d", buffer[0])
+		entries, err := ioutil.ReadDir(dir)
+		if err != nil {
+			err = os.Mkdir(dir, 0777)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			name := entries[len(entries)-1].Name()
+			parts := strings.Split(name, ".")
+			id, err = strconv.Atoi(parts[0])
+			if err != nil {
+				panic(err)
+			}
+			id++
+		}
+
+		out, err := os.Create(fmt.Sprintf("%s/%06d.geiger", dir, id))
 		if err != nil {
 			panic(err)
 		}
@@ -68,7 +97,7 @@ func main() {
 					return
 				}
 				if length != 16 {
-					fmt.Println("invalid length")
+					fmt.Println("invalid length for time value")
 				}
 
 				ms := big.NewInt(0)

@@ -52,6 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let args: Vec<String> = env::args().collect();
 	let ctrl_c_events = ctrl_channel()?;
 	let address = format!("{}:8000", args[1]);
+    let id = args[2].parse::<u8>()?;
 
 	println!("Starting up geiger on a {}.", DeviceInfo::new()?.model());
 	let mut i2c = I2c::new()?;
@@ -67,6 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let mut counter = 0;
 	println!("Connecting to {}", address);
 	let mut stream = TcpStream::connect(address).expect("connection failed");
+    stream.write(&[id]).expect("data was sent");
 	let particle = move |level| {
 		let now = SystemTime::now();
 		let ms = now.duration_since(UNIX_EPOCH).expect("Time went backwards").as_nanos();
